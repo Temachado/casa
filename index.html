@@ -1,6 +1,21 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 <title>Despesas da Casa</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Despesas">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f4f5fa">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+</head><body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
@@ -172,6 +187,17 @@ tbody tr:hover{background:var(--surface2)}
 .subtabs .cnt{font-weight:600;opacity:.75;font-size:.8rem}
 .addbig{width:100%;border:2px dashed var(--line);background:transparent;border-radius:var(--r);padding:18px;font-weight:700;font-size:1rem;color:var(--cobalt)}
 .addbig:hover{background:var(--surface)}
+
+/* GitHub: login e aviso de versão */
+body.locked .top,body.locked #main,body.locked .tabs{display:none!important}
+.loginwrap{min-height:80vh;display:grid;place-items:center}
+.logincard{width:min(380px,100%);display:grid;gap:14px}
+.logincard input{padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);font-size:16px;width:100%}
+.logincard input:focus{border-color:var(--cobalt);outline:none}
+.logincard label{font-size:.85rem;font-weight:700;color:var(--muted)}
+.upd{position:fixed;left:0;right:0;top:0;z-index:30;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+  background:#14945f;color:#fff;font-weight:700;padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.upd button{border:0;border-radius:10px;padding:8px 14px;font-weight:800;background:#fff;color:#14945f}
 .falta{color:var(--bad);font-weight:800}
 .confirma{font-weight:700;align-self:center;margin-right:2px}
 .fimlista{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
@@ -258,6 +284,7 @@ html,body{overflow-x:clip}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
+<div id="upd" class="upd" hidden><span>Nova versão disponível</span><button type="button" id="updBtn">Atualizar</button></div>
 <header class="top">
   <div class="wrap">
     <div class="toprow">
@@ -438,7 +465,7 @@ function vPainel(){
       <text x="80" y="76" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="Figtree,sans-serif">total</text>
       <text x="80" y="95" text-anchor="middle" font-size="15" font-weight="800" fill="var(--ink)" font-family="Figtree,sans-serif">${esc(brl(total).replace(",00",""))}</text></svg>`;}
 
-  return `${S.offline?`<div class="banner">Abra esta página pelo link do Claude para salvar e ver os lançamentos da família.</div>`:""}
+  return `${S.offline?`<div class="banner">${S.semConfig?"Falta configurar o Firebase neste arquivo.":"Sem conexão com o banco de dados. Confira a internet."}</div>`:""}
   <section class="kpis">
     <div class="kpi k1"><span class="lbl">Total do mês</span><span class="val num">${brl(total)}</span><span class="sub">${itens.length} lançamento${itens.length===1?"":"s"}</span></div>
     <div class="kpi k2"><span class="lbl">Já pago</span><span class="val num">${brl(pago)}</span><span class="sub">${total?Math.round(pago/total*100):0}% do total</span></div>
@@ -581,7 +608,7 @@ function lerRapido(txt){
 
 function vRapido(){
   const R=S.rap;
-  return `${S.offline?`<div class="banner">Abra esta página pelo link do Claude para lançar e ver os gastos da família.</div>`:""}
+  return `${S.offline?`<div class="banner">${S.semConfig?"Falta configurar o Firebase neste arquivo.":"Sem conexão com o banco de dados. Confira a internet."}</div>`:""}
   <section class="card rap">
     <div class="cardhead"><h2>Lançamento rápido</h2></div>
     <form class="rapform" id="fRap" novalidate autocomplete="off">
@@ -676,6 +703,8 @@ function vSalvar(){
   <section class="card"><div class="cardhead"><h2>Só ${mesLabel(S.mes).toLowerCase()}</h2><p>Troque o mês lá em cima</p></div>
     <div class="exp"><button data-act="pdf"><b>PDF</b><span>Relatório pronto para imprimir ou mandar no WhatsApp.</span></button>
       <button data-act="csv"><b>CSV</b><span>Arquivo simples que abre em qualquer planilha.</span></button></div></section>
+  <section class="card"><div class="cardhead"><h2>Este aparelho</h2><p class="num">Versão ${APP_VERSAO}</p></div>
+    <p class="muted" style="margin:0;font-size:.85rem">Se algo parecer desatualizado, feche e abra o app de novo.</p></section>
   <section class="card"><div class="cardhead"><h2>Fechar o mês</h2><p>Grava uma foto do mês como estava neste momento. Os lançamentos continuam editáveis.</p></div>
     <p style="margin:0 0 12px">${f?`Mês fechado em <b>${new Date(f.fechadoEm).toLocaleDateString("pt-BR")}</b>${f.quem?" por "+esc(f.quem):""} com total de <b class="num">${brl(f.total)}</b>.`:"Este mês ainda não foi fechado."}</p>
     <button class="btn" data-act="fechar" ${S.offline?"disabled":""}>${f?"Fechar de novo (atualizar foto)":"Fechar o mês"}</button>
@@ -694,10 +723,10 @@ function render(fromData){
 }
 
 /* ---------- gravação ---------- */
-async function registrar(acao,resumo,detalhes,ref){try{await S.db.collection("historico").add({acao,resumo,detalhes:detalhes||"",ref:ref||"",quem:S.quem||"",autor:S.uid||"",quando:new Date().toISOString()});}catch(e){}}
+async function registrar(){}
 function erroGravar(e){
   if(e&&e.code==="quota_exceeded")toast("O espaço de dados acabou. Avise o responsável pela planilha.");
-  else if(e&&e.code==="invalid_argument")toast("Você não tem permissão para lançar. Peça acesso de Colaborador.");
+  else if(e&&/permission|PERMISSION/.test(String(e.code||e.message||"")))toast("O Firebase recusou a gravação. Confira as Regras do banco.");
   else toast("Não deu para salvar agora. Tente de novo.");
 }
 function precisaQuem(){return true;}
@@ -765,10 +794,13 @@ async function salvarInline(){
 /* ---------- exportação ---------- */
 function carregar(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>no(new Error("load"));document.head.appendChild(s);});}
 async function baixar(nome,dados){
-  const dl=window.claude?await window.claude.use("downloads"):null;
-  if(!dl){toast("Para baixar, abra a página pelo link do Claude.");return;}
-  try{await dl.save({filename:nome,data:dados});toast("Arquivo pronto");}
-  catch(e){if(e&&e.code==="declined")return;if(e&&e.code==="rate_limited"){toast("Espere um pouco e tente de novo.");return;}toast("Não foi possível baixar aqui.");}
+  try{
+    const tipo=nome.endsWith(".csv")?"text/csv;charset=utf-8":nome.endsWith(".pdf")?"application/pdf":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    const blob=dados instanceof Blob?new Blob([dados],{type:tipo}):new Blob([dados],{type:tipo});
+    const u=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=u;a.download=nome;a.rel="noopener";document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(u),10000);toast("Arquivo pronto");
+  }catch(e){toast("Não foi possível baixar.");}
 }
 const ordData=a=>a.sort((x,y)=>(x.data||"").localeCompare(y.data||""));
 const mesDe=l=>l.mes||(l.data||"").slice(0,7);
@@ -891,17 +923,57 @@ document.addEventListener("change",ev=>{
 });
 document.addEventListener("input",ev=>{if(ev.target.id==="rTxt"){S.rap.txt=ev.target.value;updPrev();return;}if(ev.target.id==="flQ"){S.filtro.q=ev.target.value;const p=ev.target.selectionStart;render();const el=document.getElementById("flQ");el.focus();try{el.setSelectionRange(p,p)}catch(e){}}});
 
+/* ===== Configuração ===== */
+const APP_VERSAO="26/10/2026 10:33";
+const FIREBASE_CONFIG={
+  "databaseURL": "https://casa-b6a47-default-rtdb.firebaseio.com",
+  "projectId": "casa-b6a47"
+};
+
+/* banco: Realtime Database com o mesmo jeito de usar do painel (coleções e documentos) */
+function rtdb(fdb){
+  const root=fdb.ref("despesas"),limpa=o=>JSON.parse(JSON.stringify(o));
+  const snapOf=s=>{const v=s.val()||{};return {docs:Object.keys(v).map(k=>({id:k,data:()=>v[k]}))};};
+  const doc=path=>{const ref=root.child(path);return {set:d=>ref.set(limpa(d)),update:d=>ref.update(limpa(d)),delete:()=>ref.remove(),
+    get:async()=>{const s=await ref.once("value");return {id:s.key,exists:s.exists(),data:()=>s.val()};}};};
+  const collection=name=>{const ref=root.child(name);const q={orderBy:()=>q,limit:()=>q,
+    onSnapshot:(ok,err)=>{ref.on("value",s=>ok(snapOf(s)),e=>err&&err(e));},
+    get:async()=>snapOf(await ref.once("value")),
+    add:async d=>{const r=ref.push();await r.set(limpa(d));return {id:r.key};},
+    doc:id=>doc(name+"/"+id)};return q;};
+  return {collection,doc};
+}
+function iniciar(u){
+  if(S.db)return;
+  const db=rtdb(firebase.database());S.db=db;S.uid=u.uid;
+  let pend=4;const pronto=()=>{if(--pend<=0)S.ready=true;render();};
+  const sub=(key,q,depois)=>{let first=true;q.onSnapshot(s=>{S[key]=s.docs.map(d=>({id:d.id,...d.data()}));if(first){first=false;depois&&depois();pronto();}else render(true);},()=>{if(first){first=false;pronto();}});};
+  sub("lanc",db.collection("lancamentos"));sub("contas",db.collection("contas"));sub("fech",db.collection("fechamentos"));
+  sub("cartoes",db.collection("cartoes"),()=>{if(!S.cartoes.length){
+    db.doc("cartoes/btg").set({nome:"BTG Mastercard",grupo:"BTG Mastercard",tipo:"",cor:"btg",ordem:1,ativo:true});
+    db.doc("cartoes/santander").set({nome:"Santander Visa",grupo:"Santander Visa",tipo:"",cor:"santander",ordem:2,ativo:true});}});
+  firebase.database().ref(".info/connected").on("value",s=>{const off=s.val()===false&&S.ready;if(off!==S.offline){S.offline=off;render(true);}});
+}
 render();
-(async()=>{
-  if(!window.claude||!window.claude.use){S.offline=true;render();return;}
-  const [db,user]=await Promise.all([window.claude.use("db"),window.claude.use("user")]);
-  if(!db){S.offline=true;render();return;}
-  S.db=db;S.uid=user?await user.id():null;
-  let pend=5;const pronto=()=>{if(--pend<=0)S.ready=true;render();};
-  const sub=(key,q)=>{let first=true;q.onSnapshot(s=>{S[key]=s.docs.map(d=>({id:d.id,...d.data()}));if(key==="hist")S.hist.sort((a,b)=>(b.quando||"").localeCompare(a.quando||""));if(first){first=false;pronto();}else render(true);},()=>{if(first){first=false;pronto();}});};
-  sub("lanc",db.collection("lancamentos"));sub("contas",db.collection("contas"));sub("cartoes",db.collection("cartoes"));sub("fech",db.collection("fechamentos"));
-  sub("hist",db.collection("historico").orderBy("quando","desc").limit(300));
+(function(){
+  if(!FIREBASE_CONFIG||!window.firebase){S.offline=true;S.semConfig=!FIREBASE_CONFIG;render();return;}
+  firebase.initializeApp(FIREBASE_CONFIG);
+  iniciar({uid:""});
 })();
+
+/* aviso de nova versão (Service Worker) */
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").then(reg=>{
+    const avisa=w=>{if(!w)return;const show=()=>{document.getElementById("upd").hidden=false;document.getElementById("updBtn").onclick=()=>w.postMessage("skip");};
+      if(w.state==="installed")show();else w.addEventListener("statechange",()=>{if(w.state==="installed")show();});};
+    if(reg.waiting&&navigator.serviceWorker.controller)avisa(reg.waiting);
+    reg.addEventListener("updatefound",()=>{if(navigator.serviceWorker.controller)avisa(reg.installing);});
+    setInterval(()=>reg.update().catch(()=>{}),60000);
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)reg.update().catch(()=>{});});
+  }).catch(()=>{});
+  let recarregou=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(recarregou)return;recarregou=true;location.reload();});
+}
 </script>
 
 </body></html>
