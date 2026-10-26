@@ -1,6 +1,6 @@
 // Despesas da Casa — Service Worker
 // O nome do cache muda a cada versão para o iPhone/Safari buscar tudo de novo.
-const CACHE = "despesas-20261026-103300";
+const CACHE = "despesas-20261026-105230";
 const ARQUIVOS = ["./", "./index.html", "./manifest.json", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {

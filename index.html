@@ -924,7 +924,7 @@ document.addEventListener("change",ev=>{
 document.addEventListener("input",ev=>{if(ev.target.id==="rTxt"){S.rap.txt=ev.target.value;updPrev();return;}if(ev.target.id==="flQ"){S.filtro.q=ev.target.value;const p=ev.target.selectionStart;render();const el=document.getElementById("flQ");el.focus();try{el.setSelectionRange(p,p)}catch(e){}}});
 
 /* ===== Configuração ===== */
-const APP_VERSAO="26/10/2026 10:33";
+const APP_VERSAO="26/10/2026 10:52";
 const FIREBASE_CONFIG={
   "databaseURL": "https://casa-b6a47-default-rtdb.firebaseio.com",
   "projectId": "casa-b6a47"
@@ -943,12 +943,30 @@ function rtdb(fdb){
     doc:id=>doc(name+"/"+id)};return q;};
   return {collection,doc};
 }
+/* itens da lista que já existiam na planilha do Claude: entram uma única vez */
+const ITENS_INICIAIS=[
+  ["celular","Celulares","Contas da casa","Boleto",""],["combustivel","Combustível","Transporte","Vários",""],
+  ["condominio","Condomínio (inclui água)","Moradia","Boleto",""],["escola","Escola / Cursos","Educação","Boleto",""],
+  ["farmacia","Farmácia","Saúde","Vários",""],["gas","Gás","Contas da casa","Boleto",""],
+  ["ifood","iFood","Delivery","Cartão","btg"],["internet","Internet","Contas da casa","Boleto",""],
+  ["luz","Energia elétrica","Contas da casa","Boleto",""],["mercado","Mercado","Mercado","Vários",""],
+  ["streaming","Streaming (filmes e música)","Assinaturas","Cartão","btg"]];
+async function semearContas(db){
+  try{
+    const m=await db.doc("config/itensIniciais").get();if(m.exists)return;
+    for(const [id,nome,categoria,meio,cartaoId] of ITENS_INICIAIS){
+      if(S.contas.some(c=>c.id===id))continue;
+      await db.doc("contas/"+id).set({nome,categoria,meio,cartaoId,auto:!!cartaoId,valor:0,ativo:true});
+    }
+    await db.doc("config/itensIniciais").set({em:new Date().toISOString()});
+  }catch(e){}
+}
 function iniciar(u){
   if(S.db)return;
   const db=rtdb(firebase.database());S.db=db;S.uid=u.uid;
   let pend=4;const pronto=()=>{if(--pend<=0)S.ready=true;render();};
   const sub=(key,q,depois)=>{let first=true;q.onSnapshot(s=>{S[key]=s.docs.map(d=>({id:d.id,...d.data()}));if(first){first=false;depois&&depois();pronto();}else render(true);},()=>{if(first){first=false;pronto();}});};
-  sub("lanc",db.collection("lancamentos"));sub("contas",db.collection("contas"));sub("fech",db.collection("fechamentos"));
+  sub("lanc",db.collection("lancamentos"));sub("contas",db.collection("contas"),()=>semearContas(db));sub("fech",db.collection("fechamentos"));
   sub("cartoes",db.collection("cartoes"),()=>{if(!S.cartoes.length){
     db.doc("cartoes/btg").set({nome:"BTG Mastercard",grupo:"BTG Mastercard",tipo:"",cor:"btg",ordem:1,ativo:true});
     db.doc("cartoes/santander").set({nome:"Santander Visa",grupo:"Santander Visa",tipo:"",cor:"santander",ordem:2,ativo:true});}});
